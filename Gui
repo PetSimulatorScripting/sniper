@@ -1,0 +1,711 @@
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local UserInputService = game:GetService("UserInputService")
+
+-- Rozbudowana baza danych przedmiotów
+local itemDatabase = {
+    ["🔥 Huge Pets"] = {
+        "Huge Cat", "Huge Dog", "Huge Dragon", "Huge Pumpkin Cat",
+        "Huge Festive Cat", "Huge Hell Rock", "Huge Corgi", "Huge Elephant",
+        "Huge Fox", "Huge Bunny", "Huge Penguin", "Huge Owl"
+    },
+    ["🚢 Titanic Pets"] = {
+        "Titanic Christmas Cat", "Titanic Festive Cat", "Titanic Hell Rock",
+        "Titanic Dragon", "Titanic Elephant", "Titanic Griffin"
+    },
+    ["📦 Misc Items"] = {
+        "Coins Potion 1", "Coins Potion 2", "Coins Potion 3", 
+        "Coins Potion 4", "Coins Potion 5", "Diamonds Potion 1", 
+        "Diamonds Potion 2", "Diamonds Potion 3", "Diamonds Potion 4",
+        "Diamonds Potion 5", "Rainbow Potion", "Shiny Potion", "Lucky Potion"
+    },
+    ["⭐ Exclusive Pets"] = {
+        "Exclusive Cat", "Exclusive Dog", "Exclusive Dragon",
+        "Exclusive Bunny", "Exclusive Penguin", "Exclusive Owl"
+    },
+    ["🌈 Rainbow Pets"] = {
+        "Rainbow Cat", "Rainbow Dog", "Rainbow Dragon", "Rainbow Bunny",
+        "Rainbow Penguin", "Rainbow Owl", "Rainbow Elephant"
+    }
+}
+
+-- Główne GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SystemExodusMobileGUI"
+ScreenGui.Parent = PlayerGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+-- Główny kontener (początkowo ukryty)
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0.95, 0, 0.9, 0)
+MainFrame.Position = UDim2.new(0.025, 0, 0.05, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 15)
+UICorner.Parent = MainFrame
+
+-- Nagłówek
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 80)
+Header.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+Header.BorderSizePixel = 0
+Header.Parent = MainFrame
+
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.CornerRadius = UDim.new(0, 15)
+HeaderCorner.Parent = Header
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0.7, 0, 1, 0)
+Title.Position = UDim2.new(0.05, 0, 0, 0)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Text = "🎯 SYSTEM EXODUS"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 22
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
+
+local SubTitle = Instance.new("TextLabel")
+SubTitle.Size = UDim2.new(0.7, 0, 0.5, 0)
+SubTitle.Position = UDim2.new(0.05, 0, 0.5, 0)
+SubTitle.BackgroundTransparency = 1
+SubTitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+SubTitle.Text = "Mobile Config - Delta"
+SubTitle.Font = Enum.Font.Gotham
+SubTitle.TextSize = 14
+SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+SubTitle.Parent = Header
+
+-- Przycisk zamknięcia
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 60, 0, 60)
+CloseButton.Position = UDim2.new(1, -70, 0, 10)
+CloseButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Text = "✕"
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 28
+CloseButton.Parent = Header
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(1, 0)
+CloseCorner.Parent = CloseButton
+
+-- Przycisk otwarcia GUI
+local OpenGUIButton = Instance.new("TextButton")
+OpenGUIButton.Size = UDim2.new(0, 80, 0, 80)
+OpenGUIButton.Position = UDim2.new(0, 20, 0, 20)
+OpenGUIButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+OpenGUIButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenGUIButton.Text = "🎯"
+OpenGUIButton.Font = Enum.Font.GothamBold
+OpenGUIButton.TextSize = 24
+OpenGUIButton.Visible = true
+OpenGUIButton.ZIndex = 100
+OpenGUIButton.Parent = ScreenGui
+
+local OpenButtonCorner = Instance.new("UICorner")
+OpenButtonCorner.CornerRadius = UDim.new(1, 0)
+OpenButtonCorner.Parent = OpenGUIButton
+
+-- Zakładki
+local TabButtons = Instance.new("Frame")
+TabButtons.Size = UDim2.new(1, -20, 0, 70)
+TabButtons.Position = UDim2.new(0, 10, 0, 90)
+TabButtons.BackgroundTransparency = 1
+TabButtons.Parent = MainFrame
+
+local TabLayout = Instance.new("UIListLayout")
+TabLayout.FillDirection = Enum.FillDirection.Horizontal
+TabLayout.Padding = UDim.new(0, 15)
+TabLayout.Parent = TabButtons
+
+-- Funkcja tworzenia zakładki
+local function createTab(name, isActive)
+    local tab = Instance.new("TextButton")
+    tab.Size = UDim2.new(0.48, 0, 1, 0)
+    tab.BackgroundColor3 = isActive and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(60, 60, 80)
+    tab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tab.Text = name
+    tab.Font = Enum.Font.GothamBold
+    tab.TextSize = 18
+    tab.Parent = TabButtons
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = tab
+    
+    return tab
+end
+
+-- Tworzenie zakładek
+local ItemsTab = createTab("📦 ITEMS", true)
+local SettingsTab = createTab("⚙️ SETTINGS", false)
+
+-- Kontener zawartości
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, -20, 1, -180)
+ContentFrame.Position = UDim2.new(0, 10, 0, 175)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = MainFrame
+
+-- Panel przedmiotów
+local ItemsPanel = Instance.new("Frame")
+ItemsPanel.Size = UDim2.new(1, 0, 1, 0)
+ItemsPanel.BackgroundTransparency = 1
+ItemsPanel.Visible = true
+ItemsPanel.Parent = ContentFrame
+
+-- Panel ustawień
+local SettingsPanel = Instance.new("Frame")
+SettingsPanel.Size = UDim2.new(1, 0, 1, 0)
+SettingsPanel.BackgroundTransparency = 1
+SettingsPanel.Visible = false
+SettingsPanel.Parent = ContentFrame
+
+-- Kategorie
+local CategoryLabel = Instance.new("TextLabel")
+CategoryLabel.Size = UDim2.new(1, 0, 0, 35)
+CategoryLabel.BackgroundTransparency = 1
+CategoryLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+CategoryLabel.Text = "Kategorie:"
+CategoryLabel.Font = Enum.Font.GothamBold
+CategoryLabel.TextSize = 18
+CategoryLabel.TextXAlignment = Enum.TextXAlignment.Left
+CategoryLabel.Parent = ItemsPanel
+
+local CategoryScroll = Instance.new("ScrollingFrame")
+CategoryScroll.Size = UDim2.new(1, 0, 0, 90)
+CategoryScroll.Position = UDim2.new(0, 0, 0, 40)
+CategoryScroll.BackgroundTransparency = 1
+CategoryScroll.ScrollBarThickness = 6
+CategoryScroll.CanvasSize = UDim2.new(2, 0, 0, 0)
+CategoryScroll.Parent = ItemsPanel
+
+local CategoryLayout = Instance.new("UIListLayout")
+CategoryLayout.FillDirection = Enum.FillDirection.Horizontal
+CategoryLayout.Padding = UDim.new(0, 12)
+CategoryLayout.Parent = CategoryScroll
+
+-- Wyszukiwarka
+local SearchLabel = Instance.new("TextLabel")
+SearchLabel.Size = UDim2.new(1, 0, 0, 35)
+SearchLabel.Position = UDim2.new(0, 0, 0, 140)
+SearchLabel.BackgroundTransparency = 1
+SearchLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchLabel.Text = "Wyszukiwarka:"
+SearchLabel.Font = Enum.Font.GothamBold
+SearchLabel.TextSize = 18
+SearchLabel.TextXAlignment = Enum.TextXAlignment.Left
+SearchLabel.Parent = ItemsPanel
+
+local SearchBox = Instance.new("TextBox")
+SearchBox.Size = UDim2.new(1, 0, 0, 50)
+SearchBox.Position = UDim2.new(0, 0, 0, 180)
+SearchBox.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchBox.PlaceholderText = "🔍 Szukaj przedmiotu..."
+SearchBox.Font = Enum.Font.Gotham
+SearchBox.TextSize = 18
+SearchBox.Parent = ItemsPanel
+
+local SearchCorner = Instance.new("UICorner")
+SearchCorner.CornerRadius = UDim.new(0, 12)
+SearchCorner.Parent = SearchBox
+
+-- Lista przedmiotów
+local ItemsLabel = Instance.new("TextLabel")
+ItemsLabel.Size = UDim2.new(1, 0, 0, 35)
+ItemsLabel.Position = UDim2.new(0, 0, 0, 240)
+ItemsLabel.BackgroundTransparency = 1
+ItemsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+ItemsLabel.Text = "Przedmioty:"
+ItemsLabel.Font = Enum.Font.GothamBold
+ItemsLabel.TextSize = 18
+ItemsLabel.TextXAlignment = Enum.TextXAlignment.Left
+ItemsLabel.Parent = ItemsPanel
+
+local ItemsScroll = Instance.new("ScrollingFrame")
+ItemsScroll.Size = UDim2.new(1, 0, 1, -290)
+ItemsScroll.Position = UDim2.new(0, 0, 0, 280)
+ItemsScroll.BackgroundTransparency = 1
+ItemsScroll.ScrollBarThickness = 8
+ItemsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+ItemsScroll.Parent = ItemsPanel
+
+local ItemsLayout = Instance.new("UIListLayout")
+ItemsLayout.Padding = UDim.new(0, 10)
+ItemsLayout.Parent = ItemsScroll
+
+-- Panel ustawień
+local SettingsScroll = Instance.new("ScrollingFrame")
+SettingsScroll.Size = UDim2.new(1, 0, 1, 0)
+SettingsScroll.BackgroundTransparency = 1
+SettingsScroll.ScrollBarThickness = 8
+SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 600)
+SettingsScroll.Parent = SettingsPanel
+
+local SettingsLayout = Instance.new("UIListLayout")
+SettingsLayout.Padding = UDim.new(0, 15)
+SettingsLayout.Parent = SettingsScroll
+
+-- Ustawienia ceny
+local PriceFrame = Instance.new("Frame")
+PriceFrame.Size = UDim2.new(1, 0, 0, 80)
+PriceFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+PriceFrame.Parent = SettingsScroll
+
+local PriceCorner = Instance.new("UICorner")
+PriceCorner.CornerRadius = UDim.new(0, 12)
+PriceCorner.Parent = PriceFrame
+
+local PriceLabel = Instance.new("TextLabel")
+PriceLabel.Size = UDim2.new(1, -20, 0, 40)
+PriceLabel.Position = UDim2.new(0, 10, 0, 0)
+PriceLabel.BackgroundTransparency = 1
+PriceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+PriceLabel.Text = "💰 Cena zakupu:"
+PriceLabel.Font = Enum.Font.GothamBold
+PriceLabel.TextSize = 16
+PriceLabel.TextXAlignment = Enum.TextXAlignment.Left
+PriceLabel.Parent = PriceFrame
+
+local PriceBox = Instance.new("TextBox")
+PriceBox.Size = UDim2.new(1, -20, 0, 35)
+PriceBox.Position = UDim2.new(0, 10, 0, 40)
+PriceBox.BackgroundColor3 = Color3.fromRGB(60, 60, 75)
+PriceBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+PriceBox.PlaceholderText = "np. 80%, 1b, 5000"
+PriceBox.Text = "80%"
+PriceBox.Font = Enum.Font.Gotham
+PriceBox.TextSize = 16
+PriceBox.Parent = PriceFrame
+
+local PriceBoxCorner = Instance.new("UICorner")
+PriceBoxCorner.CornerRadius = UDim.new(0, 8)
+PriceBoxCorner.Parent = PriceBox
+
+-- Limit ekwipunku
+local LimitFrame = Instance.new("Frame")
+LimitFrame.Size = UDim2.new(1, 0, 0, 80)
+LimitFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+LimitFrame.Parent = SettingsScroll
+
+local LimitCorner = Instance.new("UICorner")
+LimitCorner.CornerRadius = UDim.new(0, 12)
+LimitCorner.Parent = LimitFrame
+
+local LimitLabel = Instance.new("TextLabel")
+LimitLabel.Size = UDim2.new(1, -20, 0, 40)
+LimitLabel.Position = UDim2.new(0, 10, 0, 0)
+LimitLabel.BackgroundTransparency = 1
+LimitLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+LimitLabel.Text = "📦 Limit ekwipunku:"
+LimitLabel.Font = Enum.Font.GothamBold
+LimitLabel.TextSize = 16
+LimitLabel.TextXAlignment = Enum.TextXAlignment.Left
+LimitLabel.Parent = LimitFrame
+
+local LimitBox = Instance.new("TextBox")
+LimitBox.Size = UDim2.new(1, -20, 0, 35)
+LimitBox.Position = UDim2.new(0, 10, 0, 40)
+LimitBox.BackgroundColor3 = Color3.fromRGB(60, 60, 75)
+LimitBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+LimitBox.PlaceholderText = "np. 5"
+LimitBox.Text = "5"
+LimitBox.Font = Enum.Font.Gotham
+LimitBox.TextSize = 16
+LimitBox.Parent = LimitFrame
+
+local LimitBoxCorner = Instance.new("UICorner")
+LimitBoxCorner.CornerRadius = UDim.new(0, 8)
+LimitBoxCorner.Parent = LimitBox
+
+-- Opcje zaawansowane
+local OptionsFrame = Instance.new("Frame")
+OptionsFrame.Size = UDim2.new(1, 0, 0, 120)
+OptionsFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+OptionsFrame.Parent = SettingsScroll
+
+local OptionsCorner = Instance.new("UICorner")
+OptionsCorner.CornerRadius = UDim.new(0, 12)
+OptionsCorner.Parent = OptionsFrame
+
+local OptionsLabel = Instance.new("TextLabel")
+OptionsLabel.Size = UDim2.new(1, -20, 0, 40)
+OptionsLabel.Position = UDim2.new(0, 10, 0, 0)
+OptionsLabel.BackgroundTransparency = 1
+OptionsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+OptionsLabel.Text = "⚙️ Opcje zaawansowane:"
+OptionsLabel.Font = Enum.Font.GothamBold
+OptionsLabel.TextSize = 16
+OptionsLabel.TextXAlignment = Enum.TextXAlignment.Left
+OptionsLabel.Parent = OptionsFrame
+
+-- Checkboxy
+local function createCheckbox(parent, text, yPosition)
+    local checkFrame = Instance.new("Frame")
+    checkFrame.Size = UDim2.new(1, -20, 0, 30)
+    checkFrame.Position = UDim2.new(0, 10, 0, yPosition)
+    checkFrame.BackgroundTransparency = 1
+    checkFrame.Parent = parent
+    
+    local checkbox = Instance.new("TextButton")
+    checkbox.Size = UDim2.new(0, 25, 0, 25)
+    checkbox.BackgroundColor3 = Color3.fromRGB(60, 60, 75)
+    checkbox.Text = ""
+    checkbox.Parent = checkFrame
+    
+    local checkCorner = Instance.new("UICorner")
+    checkCorner.CornerRadius = UDim.new(0, 6)
+    checkCorner.Parent = checkbox
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -35, 1, 0)
+    label.Position = UDim2.new(0, 35, 0, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Text = text
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = checkFrame
+    
+    local isChecked = false
+    
+    checkbox.MouseButton1Click:Connect(function()
+        isChecked = not isChecked
+        checkbox.BackgroundColor3 = isChecked and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(60, 60, 75)
+        print("✅ " .. text .. ": " .. (isChecked and "TAK" or "NIE"))
+    end)
+    
+    return function() return isChecked end
+end
+
+local getDetectManipulation = createCheckbox(OptionsFrame, "Wykrywaj manipulacje cenami", 45)
+local getAllTypes = createCheckbox(OptionsFrame, "Wszystkie typy (Shiny/Rainbow)", 80)
+
+-- Przyciski akcji
+local ActionsFrame = Instance.new("Frame")
+ActionsFrame.Size = UDim2.new(1, 0, 0, 250)
+ActionsFrame.BackgroundTransparency = 1
+ActionsFrame.Parent = SettingsScroll
+
+local function createActionButton(text, color)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 70)
+    button.BackgroundColor3 = color
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Text = text
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 20
+    button.Parent = ActionsFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 15)
+    corner.Parent = button
+    
+    return button
+end
+
+local SaveSniperButton = createActionButton("💾 ZAPISZ SNIPERA", Color3.fromRGB(0, 150, 80))
+local SaveSellerButton = createActionButton("💾 ZAPISZ SPRZEDAŻ", Color3.fromRGB(0, 100, 200))
+local StartBotButton = createActionButton("🚀 URUCHOM BOTA", Color3.fromRGB(150, 0, 200))
+
+-- Status bota
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, 0, 0, 40)
+StatusLabel.Position = UDim2.new(0, 0, 0, 220)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+StatusLabel.Text = "Status: Nieaktywny"
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.TextSize = 16
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Center
+StatusLabel.Parent = ActionsFrame
+
+-- Zmienne stanu
+local selectedCategory = ""
+local selectedItems = {}
+local botActive = false
+
+-- Funkcja tworzenia przycisku kategorii
+local function createCategoryButton(name)
+    local cleanName = name:gsub(" %(.+%)", "")
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 140, 0, 80)
+    button.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Text = name
+    button.Font = Enum.Font.Gotham
+    button.TextSize = 14
+    button.TextWrapped = true
+    button.Parent = CategoryScroll
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = button
+    
+    -- Zdarzenie kliknięcia kategorii (POPRAWIONE)
+    button.MouseButton1Click:Connect(function()
+        print("🔄 Kliknięto kategorię: " .. cleanName)
+        selectedCategory = cleanName
+        
+        -- Odznacz wszystkie inne przyciski
+        for _, child in ipairs(CategoryScroll:GetChildren()) do
+            if child:IsA("TextButton") then
+                child.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+            end
+        end
+        button.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+        
+        -- Wyczyść zaznaczone przedmioty przy zmianie kategorii
+        selectedItems = {}
+        updateItemsList()
+    end)
+    
+    return button
+end
+
+-- Funkcja aktualizacji listy przedmiotów (POPRAWIONA)
+local function updateItemsList()
+    print("🔄 Aktualizacja listy dla: " .. selectedCategory)
+    
+    -- Wyczyść istniejące przedmioty
+    for _, child in ipairs(ItemsScroll:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    local items = itemDatabase[selectedCategory] or {}
+    local searchText = SearchBox.Text:lower()
+    
+    local filteredItems = {}
+    for _, item in ipairs(items) do
+        if searchText == "" or item:lower():find(searchText, 1, true) then
+            table.insert(filteredItems, item)
+        end
+    end
+    
+    print("📋 Znaleziono " .. #filteredItems .. " przedmiotów")
+    
+    -- Twórz przyciski dla każdego przedmiotu
+    for i, itemName in ipairs(filteredItems) do
+        local itemButton = Instance.new("TextButton")
+        itemButton.Size = UDim2.new(1, 0, 0, 60)
+        itemButton.Position = UDim2.new(0, 0, 0, (i-1) * 70)
+        itemButton.BackgroundColor3 = selectedItems[itemName] and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(60, 60, 75)
+        itemButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        itemButton.Text = itemName
+        itemButton.Font = Enum.Font.Gotham
+        itemButton.TextSize = 16
+        itemButton.TextWrapped = true
+        itemButton.Parent = ItemsScroll
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 10)
+        corner.Parent = itemButton
+        
+        -- Zdarzenie kliknięcia przedmiotu (POPRAWIONE)
+        itemButton.MouseButton1Click:Connect(function()
+            print("🎯 Kliknięto przedmiot: " .. itemName)
+            selectedItems[itemName] = not selectedItems[itemName]
+            itemButton.BackgroundColor3 = selectedItems[itemName] and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(60, 60, 75)
+            
+            local count = 0
+            for _, selected in pairs(selectedItems) do
+                if selected then count = count + 1 end
+            end
+            print("📦 Wybrane przedmioty: " .. count)
+        end)
+    end
+    
+    ItemsScroll.CanvasSize = UDim2.new(0, 0, 0, #filteredItems * 70)
+end
+
+-- Funkcja otwierania GUI
+local function openGUI()
+    MainFrame.Visible = true
+    OpenGUIButton.Visible = false
+    print("📱 Otwieranie GUI...")
+    
+    -- Upewnij się, że pierwsza kategoria jest zaznaczona
+    if selectedCategory == "" and CategoryScroll:FindFirstChildOfClass("TextButton") then
+        local firstButton = CategoryScroll:FindFirstChildOfClass("TextButton")
+        firstButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+        selectedCategory = firstButton.Text:gsub(" %(.+%)", "")
+        updateItemsList()
+    end
+end
+
+-- Funkcja zamykania GUI
+local function closeGUI()
+    MainFrame.Visible = false
+    OpenGUIButton.Visible = true
+    print("📱 Zamykanie GUI...")
+end
+
+-- Funkcja uruchamiania bota
+local function startBot()
+    print("🚀 PRÓBA URUCHOMIENIA BOTA...")
+    
+    -- Sprawdź czy wybrano przedmioty
+    local selectedCount = 0
+    for _, selected in pairs(selectedItems) do
+        if selected then selectedCount = selectedCount + 1 end
+    end
+    
+    if selectedCount == 0 then
+        print("❌ Nie wybrano żadnych przedmiotów!")
+        StatusLabel.Text = "Status: Brak przedmiotów!"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    if PriceBox.Text == "" then
+        print("❌ Nie ustawiono ceny!")
+        StatusLabel.Text = "Status: Brak ceny!"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    -- Stwórz podstawowe ustawienia
+    if not getgenv().Settings then
+        getgenv().Settings = {
+            Sniper = {
+                Active = true,
+                Items = {}
+            },
+            Seller = {
+                Active = false,
+                Items = {}
+            }
+        }
+    end
+    
+    -- Dodaj wybrane przedmioty
+    for itemName, selected in pairs(selectedItems) do
+        if selected then
+            local itemSettings = {
+                Price = PriceBox.Text,
+                InventoryLimit = tonumber(LimitBox.Text) or 5
+            }
+            
+            if getDetectManipulation() then
+                itemSettings.DetectManipulation = true
+            end
+            
+            if getAllTypes() then
+                itemSettings.AllTypes = true
+            end
+            
+            getgenv().Settings.Sniper.Items[itemName] = itemSettings
+        end
+    end
+    
+    -- Symuluj uruchomienie bota
+    botActive = true
+    StatusLabel.Text = "Status: ✅ Aktywny!"
+    StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    
+    print("✅ BOT URUCHOMIONY!")
+    print("📋 Wybrane przedmioty: " .. selectedCount)
+    print("💰 Cena: " .. PriceBox.Text)
+    print("📦 Limit: " .. (LimitBox.Text or "5"))
+    
+    -- Pokaż podsumowanie
+    local summary = "🎯 PODSUMOWANIE:\n"
+    for itemName, selected in pairs(selectedItems) do
+        if selected then
+            summary = summary .. "• " .. itemName .. "\n"
+        end
+    end
+    summary = summary .. "💰 Cena: " .. PriceBox.Text .. "\n"
+    summary = summary .. "📦 Limit: " .. (LimitBox.Text or "5")
+    print(summary)
+    
+    -- Zamknij GUI po uruchomieniu
+    closeGUI()
+end
+
+-- 🎯 GŁÓWNE ZDARZENIA KLIKNIĘĆ
+
+-- Przycisk otwarcia GUI
+OpenGUIButton.MouseButton1Click:Connect(function()
+    print("🎯 Kliknięto przycisk otwarcia GUI")
+    openGUI()
+end)
+
+-- Przycisk zamknięcia GUI
+CloseButton.MouseButton1Click:Connect(function()
+    print("❌ Kliknięto przycisk zamknięcia")
+    closeGUI()
+end)
+
+-- Przełączanie zakładek
+ItemsTab.MouseButton1Click:Connect(function()
+    print("📦 Kliknięto zakładkę ITEMS")
+    ItemsPanel.Visible = true
+    SettingsPanel.Visible = false
+    ItemsTab.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    SettingsTab.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+end)
+
+SettingsTab.MouseButton1Click:Connect(function()
+    print("⚙️ Kliknięto zakładkę SETTINGS")
+    ItemsPanel.Visible = false
+    SettingsPanel.Visible = true
+    ItemsTab.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    SettingsTab.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+end)
+
+-- Wyszukiwarka
+SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    print("🔍 Wyszukiwanie: " .. SearchBox.Text)
+    updateItemsList()
+end)
+
+-- Przyciski akcji
+SaveSniperButton.MouseButton1Click:Connect(function()
+    print("💾 Kliknięto ZAPISZ SNIPERA")
+    -- Tutaj można dodać kod zapisywania
+end)
+
+SaveSellerButton.MouseButton1Click:Connect(function()
+    print("💰 Kliknięto ZAPISZ SPRZEDAŻ")
+    -- Tutaj można dodać kod zapisywania
+end)
+
+StartBotButton.MouseButton1Click:Connect(function()
+    print("🚀 Kliknięto URUCHOM BOTA")
+    startBot()
+end)
+
+-- Inicjalizacja
+print("🔄 Inicjalizacja GUI...")
+
+-- Stwórz przyciski kategorii
+for categoryName, items in pairs(itemDatabase) do
+    if #items > 0 then
+        createCategoryButton(categoryName .. " (" .. #items .. ")")
+    end
+end
+
+-- Dostosuj rozmiar scrolla kategorii
+CategoryScroll.CanvasSize = UDim2.new(0, #CategoryScroll:GetChildren() * 152, 0, 0)
+
+-- Na start pokaż tylko przycisk otwarcia
+closeGUI()
+
+print("✅ MOBILE GUI ZAŁADOWANE!")
+print("🎯 Kliknij przycisk 🎯 aby otworzyć GUI")
+print("📱 Wszystkie przyciski są DUŻE i reagują na dotyk")
+print("❌ Użyj przycisku ✕ aby zamknąć GUI")
