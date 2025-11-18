@@ -25,9 +25,38 @@ end
 
 repeat task.wait() until Player and Player:GetAttribute("__LOADED")
 
--- Uproszczona funkcja do pobierania przedmiotów (dla testów)
+-- Funkcja do uruchamiania głównego skryptu
+local function loadMainScript()
+    if _G.SystemExodusLoaded then
+        warn("✅ Główny skrypt jest już załadowany!")
+        return true
+    end
+    
+    local success, result = pcall(function()
+        -- URL do głównego skryptu System Exodus
+        local scriptUrl = "https://raw.githubusercontent.com/PetSimulatorScripting/sniper/refs/heads/main/sniperpro"
+        
+        -- Pobierz i wykonaj główny skrypt
+        local mainScript = game:HttpGet(scriptUrl)
+        
+        -- Wykonaj skrypt
+        loadstring(mainScript)()
+        
+        _G.SystemExodusLoaded = true
+        return true
+    end)
+    
+    if success then
+        print("🚀 Główny skrypt System Exodus został pomyślnie załadowany!")
+        return true
+    else
+        warn("❌ Błąd podczas ładowania głównego skryptu: " .. tostring(result))
+        return false
+    end
+end
+
+-- Uproszczona funkcja do pobierania przedmiotów
 local function loadGameData()
-    -- Tymczasowe dane testowe - w pełnej wersji pobierasz z gry
     local itemDatabase = {
         ["🔥 Huge Pets"] = {
             "Huge Cat",
@@ -99,14 +128,14 @@ MainFrame.Size = UDim2.new(0.95, 0, 0.9, 0)
 MainFrame.Position = UDim2.new(0.025, 0, 0.05, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 MainFrame.BorderSizePixel = 0
-MainFrame.Visible = false  -- Na start ukryte
+MainFrame.Visible = false
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 15)
 UICorner.Parent = MainFrame
 
--- Nagłózek z przyciskami
+-- Nagłówek
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 70)
 Header.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
@@ -187,21 +216,7 @@ ContentFrame.Position = UDim2.new(0, 10, 0, 145)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
--- Panel przedmiotów
-local ItemsPanel = Instance.new("Frame")
-ItemsPanel.Size = UDim2.new(1, 0, 1, 0)
-ItemsPanel.BackgroundTransparency = 1
-ItemsPanel.Visible = true
-ItemsPanel.Parent = ContentFrame
-
--- Panel ustawień
-local SettingsPanel = Instance.new("Frame")
-SettingsPanel.Size = UDim2.new(1, 0, 1, 0)
-SettingsPanel.BackgroundTransparency = 1
-SettingsPanel.Visible = false
-SettingsPanel.Parent = ContentFrame
-
--- Funkcja tworzenia zakładki
+-- Tworzenie zakładek
 local function createTab(name, isActive)
     local tab = Instance.new("TextButton")
     tab.Size = UDim2.new(0.48, 0, 1, 0)
@@ -219,9 +234,22 @@ local function createTab(name, isActive)
     return tab
 end
 
--- Tworzenie zakładek
 local ItemsTab = createTab("📦 ITEMS", true)
 local SettingsTab = createTab("⚙️ SETTINGS", false)
+
+-- Panel przedmiotów
+local ItemsPanel = Instance.new("Frame")
+ItemsPanel.Size = UDim2.new(1, 0, 1, 0)
+ItemsPanel.BackgroundTransparency = 1
+ItemsPanel.Visible = true
+ItemsPanel.Parent = ContentFrame
+
+-- Panel ustawień
+local SettingsPanel = Instance.new("Frame")
+SettingsPanel.Size = UDim2.new(1, 0, 1, 0)
+SettingsPanel.BackgroundTransparency = 1
+SettingsPanel.Visible = false
+SettingsPanel.Parent = ContentFrame
 
 -- Kategorie w panelu przedmiotów
 local CategoryLabel = Instance.new("TextLabel")
@@ -470,14 +498,27 @@ local SaveSniperButton = createActionButton("💾 ZAPISZ SNIPERA", Color3.fromRG
 local SaveSellerButton = createActionButton("💾 ZAPISZ SPRZEDAŻ", Color3.fromRGB(0, 100, 200))
 local StartBotButton = createActionButton("🚀 URUCHOM BOTA", Color3.fromRGB(150, 0, 200))
 
+-- Status bota
+local BotStatusLabel = Instance.new("TextLabel")
+BotStatusLabel.Size = UDim2.new(1, 0, 0, 30)
+BotStatusLabel.Position = UDim2.new(0, 0, 0, 190)
+BotStatusLabel.BackgroundTransparency = 1
+BotStatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+BotStatusLabel.Text = "Status: ❌ Bot nieaktywny"
+BotStatusLabel.Font = Enum.Font.GothamBold
+BotStatusLabel.TextSize = 14
+BotStatusLabel.TextXAlignment = Enum.TextXAlignment.Center
+BotStatusLabel.Parent = ActionsFrame
+
 -- Zmienne stanu
 local itemDatabase = {}
 local selectedCategory = ""
 local selectedItems = {}
+local botActive = false
 
 -- Funkcja tworzenia przycisku kategorii
 local function createCategoryButton(name)
-    local cleanName = name:gsub(" %(.+%)", "") -- Usuń liczbę z nazwy
+    local cleanName = name:gsub(" %(.+%)", "")
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(0, 120, 0, 60)
     button.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
@@ -494,7 +535,6 @@ local function createCategoryButton(name)
     
     button.MouseButton1Click:Connect(function()
         selectedCategory = cleanName
-        -- Odznacz wszystkie inne przyciski
         for _, child in ipairs(CategoryScroll:GetChildren()) do
             if child:IsA("TextButton") then
                 child.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
@@ -511,7 +551,6 @@ end
 local function updateItemsList()
     ItemsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
     
-    -- Wyczyść istniejące przedmioty
     for _, child in ipairs(ItemsScroll:GetChildren()) do
         if child:IsA("TextButton") then
             child:Destroy()
@@ -564,7 +603,6 @@ local function saveSettings(mode)
         return false
     end
     
-    -- Upewnij się, że główne ustawienia istnieją
     if not getgenv().Settings then
         getgenv().Settings = {
             Sniper = {Active = false, Items = {}},
@@ -575,7 +613,6 @@ local function saveSettings(mode)
     end
     
     if mode == "sniper" or mode == "start" then
-        -- Dodaj przedmioty do snajpera
         for itemName, selected in pairs(selectedItems) do
             if selected then
                 local itemSettings = {Price = priceBox.Text}
@@ -596,14 +633,12 @@ local function saveSettings(mode)
             end
         end
         
-        -- Ustawienia serwerów
         getgenv().Settings.Sniper["Switch Servers"] = {
             Active = getAutoSwitch(),
             SecondDelay = tonumber(serverDelayBox.Text) or 10,
             OnlyPRO = getOnlyPro()
         }
         
-        -- Zabezpieczenia
         getgenv().Settings.Sniper["Kill Switch"] = {
             ["Diamonds Hit: "..minDiamondsBox.Text] = true,
             [maxTimeBox.Text.." Minutes Timer"] = true,
@@ -614,7 +649,6 @@ local function saveSettings(mode)
     end
     
     if mode == "seller" then
-        -- Dodaj przedmioty do sprzedaży
         for itemName, selected in pairs(selectedItems) do
             if selected then
                 getgenv().Settings.Seller.Items[itemName] = {Price = priceBox.Text}
@@ -622,6 +656,41 @@ local function saveSettings(mode)
         end
         getgenv().Settings.Seller.Active = true
     end
+    
+    return true
+end
+
+-- Funkcja uruchamiania bota
+local function startBot()
+    if botActive then
+        warn("✅ Bot jest już aktywny!")
+        return true
+    end
+    
+    -- Najpierw zapisz ustawienia
+    if not saveSettings("start") then
+        warn("❌ Nie można zapisać ustawień!")
+        return false
+    end
+    
+    -- Sprawdź czy główny skrypt jest załadowany
+    if not _G.SystemExodusLoaded then
+        warn("🔄 Ładowanie głównego skryptu...")
+        if not loadMainScript() then
+            warn("❌ Nie udało się załadować głównego skryptu!")
+            return false
+        end
+    end
+    
+    -- Aktywuj bota
+    botActive = true
+    BotStatusLabel.Text = "Status: ✅ Bot aktywny"
+    BotStatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    
+    print("🚀 System Exodus Bot został uruchomiony!")
+    print("🎯 Snajper: " .. tostring(getgenv().Settings.Sniper.Active))
+    print("💰 Sprzedaż: " .. tostring(getgenv().Settings.Seller.Active))
+    print("📋 Przedmioty: " .. tostring(table.count(getgenv().Settings.Sniper.Items)))
     
     return true
 end
@@ -689,9 +758,11 @@ SaveSellerButton.MouseButton1Click:Connect(function()
 end)
 
 StartBotButton.MouseButton1Click:Connect(function()
-    if saveSettings("start") then
-        print("🚀 Bot uruchomiony z zapisanymi ustawieniami!")
-        -- Tutaj możesz dodać automatyczne uruchomienie głównego skryptu
+    print("🔄 Próba uruchomienia bota...")
+    if startBot() then
+        print("✅ Bot został pomyślnie uruchomiony!")
+    else
+        print("❌ Nie udało się uruchomić bota!")
     end
 end)
 
@@ -722,3 +793,4 @@ minimizeGUI()
 
 print("✅ Mobile GUI System Exodus załadowane!")
 print("📱 Użyj ikonki 🎯 aby otworzyć GUI")
+print("🚀 Kliknij 'URUCHOM BOTA' aby aktywować System Exodus")
